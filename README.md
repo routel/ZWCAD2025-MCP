@@ -2,7 +2,7 @@
 
 ZWCAD 2025をAIエージェントから操作するためのModel Context Protocol（MCP）サーバーです。
 
-このリポジトリでは、ZWCADへの直接操作を `CadGateway` として抽象化し、MCP層・ユースケース層・ドメイン層・インフラ層を分離しています。ZWCADがインストールされていないCI環境でも、インメモリアダプタを使ってTDDで仕様を検証できます。
+このリポジトリでは、ZWCADへの直接操作を `CadGateway` として抽象化し、MCP層・ユースケース層・ドメイン層・インフラ層を分離しています。ZWCADがインストールされていないローカル環境でも、インメモリアダプタを使ってTDDで仕様を検証できます。
 
 ## 想定するエージェント指示
 
@@ -24,7 +24,7 @@ ZWCAD 2025をAIエージェントから操作するためのModel Context Protoc
 
 ```text
 src/
-  domain/          CADオブジェクト、座標、重なり判定などの純粋なドメイン
+  domain/          CADオブジェクト、座標、BoundingBox、重なり判定などの純粋なドメイン
   application/     ユースケースとCadGatewayポート
   infrastructure/  ZWCAD COMアダプタ、インメモリアダプタ
   mcp/             MCP server、tool schema
@@ -44,6 +44,8 @@ npm install
 npm test
 npm run build
 ```
+
+> このリポジトリではGitHub Actionsなどのクラウド実行リソースを使いません。検証はローカル環境で実行してください。
 
 ## 起動
 
@@ -137,6 +139,7 @@ ZWCAD_MCP_MODE=memory npm run dev
 - ユースケースは `InMemoryCadGateway` でテストする
 - ZWCAD COM連携は契約テストを先に作り、実機検証でアダプタを補強する
 - MCP層は入力schemaとユースケース呼び出しの薄い変換層に留める
+- GitHub Actionsなどの自動実行リソースは使わない
 
 ## 今後の拡張候補
 
