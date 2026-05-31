@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const cadObjectKindSchema = z.enum(["line", "block", "circle", "polyline", "text", "unknown"]);
+
 export const point3dSchema = z.object({
   x: z.number().describe("X coordinate"),
   y: z.number().describe("Y coordinate"),
@@ -20,6 +22,12 @@ export const insertBlockSchema = z.object({
   layer: z.string().optional(),
 });
 
+export const listObjectsSchema = z.object({
+  kind: cadObjectKindSchema.optional(),
+  layer: z.string().optional(),
+  limit: z.number().int().positive().max(1000).optional(),
+});
+
 export const analyzeDrawingSchema = z.object({});
 
 export const resolveOverlapsSchema = z.object({
@@ -29,5 +37,6 @@ export const resolveOverlapsSchema = z.object({
 
 export type AddLineInput = z.infer<typeof addLineSchema>;
 export type InsertBlockInput = z.infer<typeof insertBlockSchema>;
+export type ListObjectsInput = z.infer<typeof listObjectsSchema>;
 export type AnalyzeDrawingInput = z.infer<typeof analyzeDrawingSchema>;
 export type ResolveOverlapsInput = z.infer<typeof resolveOverlapsSchema>;
