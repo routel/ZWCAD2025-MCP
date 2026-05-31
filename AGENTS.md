@@ -10,7 +10,8 @@
 2. ドメイン層をZWCAD/COM/MCPから独立させる
 3. MCP toolは薄いI/O変換層にする
 4. 実機依存の処理は `infrastructure` に閉じ込める
-5. ZWCADなしでもCIでテストできるようにする
+5. ZWCADなしでもローカル環境でテストできるようにする
+6. GitHub Actionsなど、クラウド側の実行リソースを消費する仕組みは追加しない
 
 ## ディレクトリ責務
 
@@ -34,7 +35,14 @@
 2. ドメインまたはユースケースを実装する
 3. MCP toolへ公開する
 4. READMEのtool一覧と利用例を更新する
-5. `npm test` と `npm run build` を通す
+5. `npm test` と `npm run build` をローカルで実行できる状態にする
+
+## リソース利用ポリシー
+
+- GitHub Actions workflowを追加しない
+- GitHub-hosted runnerを使わない
+- 定期実行や自動CIを設定しない
+- 検証はローカル実行を前提にする
 
 ## 注意点
 
