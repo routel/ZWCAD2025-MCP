@@ -17,6 +17,7 @@ ZWCAD 2025をAIエージェントから操作するためのModel Context Protoc
 | --- | --- |
 | `zwcad_add_line` | 現在図面へ線分を追加 |
 | `zwcad_insert_block` | 現在図面へブロックを挿入 |
+| `zwcad_list_objects` | 現在図面のオブジェクト一覧を取得 |
 | `zwcad_analyze_drawing` | 図面内オブジェクトの種別・レイヤー・重なり候補を分析 |
 | `zwcad_resolve_overlaps` | 重なり解消の移動案を作成。`apply=true` で実際に移動 |
 
@@ -127,6 +128,18 @@ ZWCAD_MCP_MODE=memory npm run dev
   "rotation": 0
 }
 ```
+
+### 図面オブジェクト一覧を取得
+
+```json
+{
+  "kind": "block",
+  "layer": "equipment",
+  "limit": 50
+}
+```
+
+`kind`、`layer`、`limit` は任意です。条件を指定しない場合は全オブジェクトを返します。
 
 ### 図面分析
 
