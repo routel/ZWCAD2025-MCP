@@ -4,6 +4,8 @@ ZWCAD 2025をAIエージェントから操作するためのModel Context Protoc
 
 このリポジトリでは、ZWCADへの直接操作を `CadGateway` として抽象化し、MCP層・ユースケース層・ドメイン層・インフラ層を分離しています。ZWCADがインストールされていないローカル環境でも、インメモリアダプタを使ってTDDで仕様を検証できます。
 
+現在の正式方針は、ZWCAD2025内にC#.NET常駐ブリッジを置き、MCPサーバーとはNamed Pipe + JSON request/responseで連携する方式です。既存のCOMアダプタは初期検証用の骨格であり、今後はexperimental扱いに整理します。
+
 ## 想定するエージェント指示
 
 - `1,1,0 座標にブロックを追加して`
@@ -24,11 +26,25 @@ ZWCAD 2025をAIエージェントから操作するためのModel Context Protoc
 ## アーキテクチャ
 
 ```text
+AIエージェント
+  ↓
+MCP Server
+  ↓ Named Pipe / JSON request
+ZWCAD2025内 C#.NET常駐ブリッジ
+  ↓ ZWCAD .NET API
+現在開いている図面
+```
+
+```text
 src/
   domain/          CADオブジェクト、座標、BoundingBox、重なり判定などの純粋なドメイン
   application/     ユースケースとCadGatewayポート
-  infrastructure/  ZWCAD COMアダプタ、インメモリアダプタ
+  infrastructure/  インメモリアダプタ、C#.NETブリッジGateway、experimental COMアダプタ
   mcp/             MCP server、tool schema
+csharp/
+  ZwcadMcpBridge/  ZWCAD2025内で常駐するC#.NET Named Pipeブリッジ（予定）
+docs/
+  HANDOFF.md       作業引継ぎ資料
 ```
 
 依存方向は以下です。
@@ -36,6 +52,7 @@ src/
 ```text
 MCP -> Application -> Domain
 Infrastructure -> Application/Domain
+C#.NET Bridge -> ZWCAD .NET API
 ```
 
 ## セットアップ
@@ -69,25 +86,32 @@ npm run smoke
 
 ## 起動
 
-### ZWCAD実機に接続する場合
-
-```bash
-npm run build
-node dist/index.js
-```
-
-既定では `ZWCAD.Application` のCOM Program IDを使います。環境により異なる場合は次のように指定してください。
-
-```bash
-ZWCAD_COM_PROGRAM_ID=ZWCAD.Application node dist/index.js
-```
-
-> 注意: Node.jsからCOMを扱うための実体生成はWindows環境・利用ライブラリに依存します。初期実装では `ZwcadComGateway` に `comFactory` を注入できる設計にし、COM接続部を差し替え可能にしています。
-
 ### ZWCADなしでMCP動作確認する場合
 
 ```bash
 ZWCAD_MCP_MODE=memory npm run dev
+```
+
+### C#.NET常駐ブリッジ方式で接続する場合（予定）
+
+今後の実装では、ZWCAD2025へC#.NETブリッジDLLをロードし、MCPサーバー側はNamed Pipe経由で接続します。
+
+```bash
+ZWCAD_MCP_MODE=bridge npm run dev
+```
+
+pipe名の初期案:
+
+```text
+ZWCAD2025_MCP_BRIDGE
+```
+
+### COM直接接続方式（experimental）
+
+COM直接接続は初期検証用です。C#.NET常駐ブリッジ方式が安定した段階で、非推奨化または削除します。
+
+```bash
+ZWCAD_MCP_MODE=com ZWCAD_COM_PROGRAM_ID=ZWCAD.Application node dist/index.js
 ```
 
 ## MCPクライアント設定例
@@ -99,7 +123,7 @@ ZWCAD_MCP_MODE=memory npm run dev
       "command": "node",
       "args": ["/path/to/ZWCAD2025-MCP/dist/index.js"],
       "env": {
-        "ZWCAD_COM_PROGRAM_ID": "ZWCAD.Application"
+        "ZWCAD_MCP_MODE": "bridge"
       }
     }
   }
@@ -169,13 +193,16 @@ ZWCAD_MCP_MODE=memory npm run dev
 
 - ドメインロジックはZWCADに依存させない
 - ユースケースは `InMemoryCadGateway` でテストする
-- ZWCAD COM連携は契約テストを先に作り、実機検証でアダプタを補強する
+- C#.NETブリッジはDTO / Dispatcher / protocolをZWCAD APIから分離してテスト可能にする
+- ZWCAD実機依存テストはローカル手動検証として扱う
 - MCP層は入力schemaとユースケース呼び出しの薄い変換層に留める
 - GitHub Actionsなどの自動実行リソースは使わない
 
 ## 今後の拡張候補
 
-- COM生成ライブラリ（例: Windows専用ActiveX bridge）の正式採用
+- C#.NET常駐ブリッジプロジェクトの追加
+- TypeScript側 `ZwcadBridgeGateway` の追加
+- Named Pipe request/response protocolの確定
 - ZWCAD上の選択セット取得
 - ブロック定義一覧取得
 - レイヤー作成・切替
