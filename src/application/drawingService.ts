@@ -4,6 +4,12 @@ import type { AddLineCommand, CadGateway, InsertBlockCommand, MoveObjectCommand 
 
 const CAD_KINDS: CadObjectKind[] = ["line", "block", "circle", "polyline", "text", "unknown"];
 
+export interface ListObjectsQuery {
+  readonly kind?: CadObjectKind;
+  readonly layer?: string;
+  readonly limit?: number;
+}
+
 export class DrawingService {
   public constructor(private readonly cadGateway: CadGateway) {}
 
@@ -13,6 +19,21 @@ export class DrawingService {
 
   public insertBlock(command: InsertBlockCommand): Promise<CadObject> {
     return this.cadGateway.insertBlock(command);
+  }
+
+  public async listObjects(query: ListObjectsQuery = {}): Promise<CadObject[]> {
+    const objects = await this.cadGateway.listObjects();
+    const filtered = objects.filter((object) => {
+      if (query.kind && object.kind !== query.kind) {
+        return false;
+      }
+      if (query.layer && object.layer !== query.layer) {
+        return false;
+      }
+      return true;
+    });
+
+    return typeof query.limit === "number" ? filtered.slice(0, query.limit) : filtered;
   }
 
   public async analyzeDrawing(): Promise<DrawingSummary> {
