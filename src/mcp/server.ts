@@ -11,6 +11,7 @@ import {
   addLineSchema,
   analyzeDrawingSchema,
   insertBlockSchema,
+  listObjectsSchema,
   resolveOverlapsSchema,
 } from "./schemas.js";
 
@@ -23,6 +24,12 @@ const jsonResult = (value: unknown): CallToolResult => ({
   ],
 });
 
+const pointJsonSchema = {
+  type: "object",
+  properties: { x: { type: "number" }, y: { type: "number" }, z: { type: "number", default: 0 } },
+  required: ["x", "y"],
+} as const;
+
 const tools: Tool[] = [
   {
     name: "zwcad_add_line",
@@ -30,16 +37,8 @@ const tools: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        start: {
-          type: "object",
-          properties: { x: { type: "number" }, y: { type: "number" }, z: { type: "number", default: 0 } },
-          required: ["x", "y"],
-        },
-        end: {
-          type: "object",
-          properties: { x: { type: "number" }, y: { type: "number" }, z: { type: "number", default: 0 } },
-          required: ["x", "y"],
-        },
+        start: pointJsonSchema,
+        end: pointJsonSchema,
         layer: { type: "string" },
       },
       required: ["start", "end"],
@@ -52,11 +51,7 @@ const tools: Tool[] = [
       type: "object",
       properties: {
         name: { type: "string" },
-        insertionPoint: {
-          type: "object",
-          properties: { x: { type: "number" }, y: { type: "number" }, z: { type: "number", default: 0 } },
-          required: ["x", "y"],
-        },
+        insertionPoint: pointJsonSchema,
         scale: {
           type: "object",
           properties: { x: { type: "number" }, y: { type: "number" }, z: { type: "number" } },
@@ -65,6 +60,18 @@ const tools: Tool[] = [
         layer: { type: "string" },
       },
       required: ["name", "insertionPoint"],
+    },
+  },
+  {
+    name: "zwcad_list_objects",
+    description: "現在図面のオブジェクト一覧を取得します。kind、layer、limitで絞り込みできます。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: ["line", "block", "circle", "polyline", "text", "unknown"] },
+        layer: { type: "string" },
+        limit: { type: "number", minimum: 1, maximum: 1000 },
+      },
     },
   },
   {
@@ -108,6 +115,8 @@ export const createMcpServer = (drawingService: DrawingService): Server => {
         return jsonResult(await drawingService.addLine(addLineSchema.parse(args)));
       case "zwcad_insert_block":
         return jsonResult(await drawingService.insertBlock(insertBlockSchema.parse(args)));
+      case "zwcad_list_objects":
+        return jsonResult(await drawingService.listObjects(listObjectsSchema.parse(args)));
       case "zwcad_analyze_drawing":
         analyzeDrawingSchema.parse(args);
         return jsonResult(await drawingService.analyzeDrawing());
